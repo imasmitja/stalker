@@ -1,4 +1,4 @@
-'''#!/usr/bin/env python3'''
+#!/usr/bin/env python
 # license removed for brevity
 # -*- coding: utf-8 -*-
 """
@@ -15,8 +15,8 @@ import time
 import socket
 import rospy
 import serial
+import sys
 
-python_version = 3
 SOUND_SPEED = 1500.
 
 #############################################################
@@ -498,6 +498,7 @@ class netcat(object):
         self.serial_port_name = serial_port_name
         #print for debug
         self.debug_print = debug
+        self.python_version = sys.version_info[0]
         #Configuration
         if self.sim == False:
         	data = self.send(b'+++ATC')
@@ -519,7 +520,7 @@ class netcat(object):
         return
         
     def port_write(self,command):
-        if python_version == 2:
+        if self.python_version == 2:
         	self.dprint('Sent --> ' + self.name +':' + command)
         else:
         	self.dprint('Sent --> ' + self.name +':' + command.decode('utf-8'))
@@ -550,12 +551,12 @@ class netcat(object):
         buff = ''
         while 1:
         	if self.interface == 'ethernet':
-        		if python_version == 2:
+        		if self.python_version == 2:
         			read = self.netcat.recv(1)
         		else:
         			read = self.netcat.recv(1).decode('utf-8')
         	elif self.interface == 'serial':
-        		if python_version == 2:
+        		if self.python_version == 2:
         			read = self.serialPort.read()
         		else:
         			read = self.serialPort.read().decode('utf-8')
@@ -586,7 +587,7 @@ class netcat(object):
         return data
 
     def send2(self,command):
-        if python_version == 2:
+        if self.python_version == 2:
         	self.dprint('Sent --> '+ self.name +':' + command)
         else:
         	self.dprint('Sent --> '+ self.name +':' + command.decode('utf-8'))
@@ -655,7 +656,7 @@ class netcat(object):
         port2 = 11000
         self.netcat.connect((self.ip, port2))
         message = str(x)+' '+str(y)+' '+str(z) + '\n'
-        if python_version == 2:
+        if self.python_version == 2:
         	self.netcat.sendall(message)
         else:
         	self.netcat.sendall(message.encode('utf-8'))
@@ -666,7 +667,7 @@ class netcat(object):
             self.netcat = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.netcat.connect((self.ip, port2))
             self.netcat.shutdown(socket.SHUT_WR)
-            if python_version == 2:
+            if self.python_version == 2:
             	read = self.netcat.recv(1024)
             else:
             	read = self.netcat.recv(1024).decode('utf-8')
@@ -685,7 +686,7 @@ class netcat(object):
         	message = 'AT*SENDIM,p0,1,'+str(remot_modem_address)+',ack,-'
         else:
         	message = 'AT*SENDIM,1,'+str(remot_modem_address)+',ack,-'
-        if python_version == 2:
+        if self.python_version == 2:
         	data, ack, failed_num = self.send_ack(message,5)
         else:
         	data, ack, failed_num = self.send_ack(message.encode('utf-8'),5)
