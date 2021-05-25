@@ -1,6 +1,6 @@
 <launch>
   <!-- Configurable arguments -->
-  <arg name="modem_id" default="5"/>
+  <arg name="modem_id" default="1"/>
   <arg name="radius" default="1"/>
   <arg name="distance_between_meas" default="1"/>
   <arg name="num_points" default="15"/>
@@ -22,5 +22,7 @@
   <node name="measure_range_service" pkg="stalker" type="measure_range_service.py" args='$(arg debug) $(arg sim) $(arg interface)' output="screen">
   </node>
   <node name="stalker_main" pkg="stalker" type="stalker_main.py" args='$(arg modem_id) $(arg radius) $(arg distance_between_meas) $(arg num_points)' output="screen" launch-prefix="bash -c 'sleep 12; $0 $@' ">
+  <node pkg="rosbag" type="record" name="rosbag_record_stalker" args="record -o $(env HOME)/bags/stalker -a -x '/sparus2/flir_spinnaker_camera/(.*)'" if="$(arg record)">
+  </node>
   </node>
 </launch>

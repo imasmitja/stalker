@@ -732,7 +732,10 @@ class netcat(object):
         if ack == False:
         	self.dprint('Range error occurred')
         	return -1
-        tof_us = int(self.send(b'AT?T'))
+        try:
+        	tof_us = int(self.send(b'AT?T'))
+        except:
+        	return -1
         slant_range = tof_us/1e6 * SOUND_SPEED
         self.dprint('SlantRange = %.2f m'%slant_range)
         return slant_range
