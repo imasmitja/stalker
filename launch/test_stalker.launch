@@ -15,6 +15,7 @@
   <arg name="tolerance_xy" default="3"/>
   <arg name="timeout" default="1800"/>
   <arg name="no_altitude_goes_up" default="True"/>
+  <arg name="record" default="True"/>
   
   <!-- Load services and programs -->
   <node name="go_to_watch_service" pkg="stalker" type="go_to_watch_service.py" args='$(arg final_depth) $(arg final_altitude) $(arg reference) $(arg heave_mode) $(arg surge_velocity) $(arg tolerance_xy) $(arg timeout) $(arg no_altitude_goes_up)' output="screen">

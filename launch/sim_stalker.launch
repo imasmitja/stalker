@@ -1,9 +1,9 @@
 <launch>
   <!-- Configurable arguments -->
   <arg name="modem_id" default="2"/>
-  <arg name="radius" default="10"/>
+  <arg name="radius" default="5"/>
   <arg name="distance_between_meas" default="1"/>
-  <arg name="num_points" default="15"/>
+  <arg name="num_points" default="-1"/>
   <arg name="debug" default="False"/>
   <arg name="sim" default="True"/>
   <arg name="interface" default="ethernet"/>
