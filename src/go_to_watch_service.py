@@ -146,8 +146,9 @@ class CircumferencePath:
         #compute the distance between the AUV and the target position
         distance = np.sqrt((self.auv_x-x_target)**2+(self.auv_y-y_target)**2)
         #If the AUV is inside the path circumference, use its own yaw as angle of rotation, if not, use the angle comuted between themselves and the target
-        if distance < radius-5:
-        	angle = self.auv_yaw
+        if distance < radius+5: #was -5
+        	#angle = self.auv_yaw
+        	angle = np.arctan2((self.auv_y-y_target),(self.auv_x-x_target)) - angle_step
         else:
         	angle = np.arctan2((self.auv_y-y_target),(self.auv_x-x_target)) - angle_step
         waypoints_x_r = []

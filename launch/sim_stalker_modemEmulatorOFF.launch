@@ -24,17 +24,17 @@
   <arg name="target_z" default="0"/>
   <arg name="target_v" default="0"/>
   <arg name="target_yaw" default="90"/>
+  <arg name="ocean_cur" default="0"/>
+  <arg name="ocean_dir" default="90"/>
   
   <!-- Load services and programs -->
   <node name="go_to_watch_service" pkg="stalker" type="go_to_watch_service.py" args='$(arg final_depth) $(arg final_altitude) $(arg reference) $(arg heave_mode) $(arg surge_velocity) $(arg tolerance_xy) $(arg timeout) $(arg no_altitude_goes_up)' output="screen">
   </node>
   <node name="sim_modem_pos_service" pkg="stalker" type="sim_modem_pos_service.py" args='$(arg debug)' output="screen">
   </node>
-  <node name="measure_range_service" pkg="stalker" type="measure_range_service.py" args='$(arg debug) $(arg sim) $(arg interface)' output="screen">
-  </node>
   <node name="sim_modem_pos_client" pkg="stalker" type="sim_modem_pos_client.py" args='$(arg target_x) $(arg target_y) $(arg target_z) $(arg target_v) $(arg target_yaw)' output="screen" launch-prefix="bash -c 'sleep 10; $0 $@' ">
   </node>
-  <node name="stalker_main" pkg="stalker" type="stalker_main.py" args='$(arg modem_id) $(arg radius) $(arg distance_between_meas) $(arg num_points) $(arg target_estimation_method) $(arg path_method) $(arg pretrined_agent)' output="screen" launch-prefix="bash -c 'sleep 12; $0 $@' ">
+  <node name="stalker_main" pkg="stalker" type="stalker_main.py" args='$(arg modem_id) $(arg radius) $(arg distance_between_meas) $(arg num_points) $(arg target_estimation_method) $(arg path_method) $(arg pretrined_agent) $(arg ocean_cur) $(arg ocean_dir)' output="screen" launch-prefix="bash -c 'sleep 12; $0 $@' ">
   </node>
   <node pkg="rosbag" type="record" name="rosbag_record_stalker" args="record -o $(env HOME)/bags/stalker -a -x '/sparus2/flir_spinnaker_camera/(.*)'" if="$(arg record)">
   </node>

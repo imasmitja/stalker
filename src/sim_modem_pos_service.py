@@ -24,17 +24,17 @@ class SimModemPos:
         							self.sim_modem_pos_callback)
         							
         # A publisher
-        self.p_target_position = rospy.Publisher('stalker/target_position', PointStamped, queue_size=10)
+        self.real_target_position = rospy.Publisher('stalker/target_position', PointStamped, queue_size=10)
         
         
         #I nitialize the acoustic modem
-        self.modem = netcat(HOSTNAME2,PORT1,'target_modem',debug=debug)
+        #self.modem = netcat(HOSTNAME2,PORT1,'target_modem',debug=debug)
         return
         
     def sim_modem_pos_callback(self, request):
     	#Move the target modem to the desired position
-    	print('WARNING: Moving target modem to %.2f m(x) %.2f m(y)'%(request.x, request.y))
-    	self.modem.move(request.y,request.x,request.z)
+    	#print('WARNING: Moving target modem to %.2f m(x) %.2f m(y) %.2f m(z)'%(request.x, request.y, request.z))
+    	#self.modem.move(request.y,request.x,request.z)
     	# Create the point message
     	point = PointStamped()
     	point.header.stamp = rospy.Time.now()
@@ -42,7 +42,7 @@ class SimModemPos:
     	point.point.x = request.x
     	point.point.y = request.y
     	point.point.z = request.z
-    	self.p_target_position.publish(point)
+    	self.real_target_position.publish(point)
     	
     	return True
 

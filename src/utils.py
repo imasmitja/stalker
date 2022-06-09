@@ -257,9 +257,9 @@ class ParticleFilter(object):
             #    index = index + 1
             #    select p[index]
                         
-        #method = 2 #NO compound method
+        method = 2 #NO compound method
         #method = 3.2 #compound method
-        method = 3 #compound method presented in OCEANS'18 Kobe
+        #method = 3 #compound method presented in OCEANS'18 Kobe
         
         if method == 1:   
             # 4- resampling with a sample probability proportional
@@ -417,8 +417,11 @@ class ParticleFilter(object):
             self.covariance_theta = np.arctan2(vec_y,vec_x)
             print('Evaluation -> covariance (CI of 98): %.2f m(x) %.2f m(y) %.2f deg'%(self.covariance_vals[0],self.covariance_vals[1],np.degrees(self.covariance_theta)))
             
-            if abs(sum2/self.particle_number - z) > max_error:
-            	self.initialized = False
+            #if abs(sum2/self.particle_number - z) > max_error:
+            #	self.initialized = False
+            if abs(sum2/self.particle_number - z) > max_error or np.sqrt(self.covariance_vals[0]**2+self.covariance_vals[1]**2) < 0.1:
+                self.initialized = False
+                self.init_particles(position=observer, slantrange=z)
         else:
             if np.max(self.w) < 0.1:
                 self.initialized = False
@@ -436,7 +439,7 @@ class Target(object):
         #Target parameters
         self.method = method
         
-        #PF initialization
+        #PF initialization #######################################################################################
         self.pxs=[]
         #Our particle filter will maintain a set of n random guesses (particles) where 
         #the target might be. Each guess (or particle) is a vector containing [x,vx,y,vy]
@@ -446,15 +449,33 @@ class Target(object):
         #self.pf = ParticleFilter(std_range=10.,init_velocity=.1,dimx=4,particle_number=10000,method=method,max_pf_range=max_pf_range)
         #self.pf.set_noise(forward_noise = 0.01, turn_noise = 0.01, sense_noise=5., velocity_noise = 0.01)
         
-        self.pf = ParticleFilter(std_range=1.,init_velocity=.05,dimx=4,particle_number=10000,method=method,max_pf_range=max_pf_range)
-        self.pf.set_noise(forward_noise = 0.001, turn_noise = 0.01, sense_noise=2., velocity_noise = 0.001)
+        #to do tests in the CIRS test tank?
+        #self.pf = ParticleFilter(std_range=1.,init_velocity=.05,dimx=4,particle_number=10000,method=method,max_pf_range=max_pf_range)
+        #self.pf.set_noise(forward_noise = 0.001, turn_noise = 0.01, sense_noise=2., velocity_noise = 0.001)
+        
+        #as BSC RL tests in Python
+        #self.pf = ParticleFilter(std_range=20.,init_velocity=.2,dimx=4,particle_number=10000,method=method,max_pf_range=max_pf_range)
+        #self.pf.set_noise(forward_noise = 0.01, turn_noise = 0.1, sense_noise=5., velocity_noise = 0.01)
+        
+        self.pf = ParticleFilter(std_range=20.,init_velocity=0.4,dimx=4,particle_number=10000,method=method,max_pf_range=max_pf_range)
+        # self.pf.set_noise(forward_noise = 0.01, turn_noise = .5, sense_noise=2., velocity_noise = 0.01)
+        self.pf.set_noise(forward_noise = 1., turn_noise = .9, sense_noise=5., velocity_noise = 0.01)
         
         self.position = [0.,0.,0.,0.]
+        
+        #############LS initialization###########################################################################
+        self.lsxs=[]
+        self.eastingpoints_LS=[]
+        self.northingpoints_LS=[]
+        self.Plsu=np.array([])
+        self.allz=[]
 
     
-    # Particle Filter                                
+    #############################################################################################
+    ####             Particle Filter (PF)                                                      ##         
+    #############################################################################################                               
     def updatePF(self,dt,new_range,z,myobserver,update=True):
-        max_error = 10.
+        max_error = 150. #at test tank maybe put it at 10
         init_time = rospy.get_time()
         if update == True:
                   
@@ -471,7 +492,10 @@ class Target(object):
             # Update step (weight and resample)
             if new_range == True:     
                 # Update the weiths according its probability
-                self.pf.measurement_prob(measurement=z,observer=myobserver)      
+                self.pf.measurement_prob(measurement=z,observer=myobserver)
+                if max(self.pf.w) == 0:
+                    self.pf.init_particles(position=self.pf.previous_observer, slantrange=self.pf.previous_z)
+                    self.pf.measurement_prob(measurement=z,observer=myobserver,error_mult=50.)       
                 #Resampling        
                 self.pf.resampling(z)
                 # Calculate the avarage error. If it's too big the particle filter is initialized                    
@@ -482,6 +506,56 @@ class Target(object):
         self.position = self.pf._x
         pf_time=rospy.get_time()-init_time
         return pf_time
+        
+    #############################################################################################
+    ####             Least Squares Algorithm  (LS)                                             ##         
+    #############################################################################################
+    def updateLS(self,dt,new_range,z,myobserver):
+        num_ls_points_used = 30
+        init_time = rospy.get_time()
+        #Propagate current target state estimate
+        if new_range == True:
+            self.allz.append(z)
+            self.eastingpoints_LS.append(myobserver[0])
+            self.northingpoints_LS.append(myobserver[2])
+        numpoints = len(self.eastingpoints_LS)
+        if numpoints > 3:
+            #Unconstrained Least Squares (LS-U) algorithm 2D
+            #/P_LS-U = N0* = N(A^T A)^-1 A^T b
+            #where:
+            P=np.matrix([self.eastingpoints_LS[-num_ls_points_used:],self.northingpoints_LS[-num_ls_points_used:]])
+            # N is:
+            N = np.concatenate((np.identity(2),np.matrix([np.zeros(2)]).T),axis=1)
+            # A is:
+            num = len(self.eastingpoints_LS[-num_ls_points_used:])
+            A = np.concatenate((2*P.T,np.matrix([np.zeros(num)]).T-1),axis=1)
+            # b is:
+            b = np.matrix([np.diag(P.T*P)-np.array(self.allz[-num_ls_points_used:])*np.array(self.allz[-num_ls_points_used:])]).T
+            # Then using the formula "/P_LS-U" the position of the target is:
+            try:
+                self.Plsu = N*(A.T*A).I*A.T*b
+            except:
+                print('WARNING: LS singular matrix')
+                try:
+                    self.Plsu = N*(A.T*A+1e-6).I*A.T*b
+                except:
+                    pass
+
+        #Compute MAP orientation and save position
+        try:
+            ls_velocity = np.array([(self.Plsu[0]-self.lsxs[-1][0])/dt,(self.Plsu[1]-self.lsxs[-1][1])/dt])
+        except IndexError:
+            ls_velocity = np.array([0,0])
+        try:
+            ls_position = np.array([self.Plsu.item(0),ls_velocity.item(0),self.Plsu.item(1),ls_velocity.item(1)])
+        except IndexError:
+            #ls_position = np.array([myobserver[0],ls_velocity[0],myobserver[2],ls_velocity[1]])
+            ls_position = np.array([0.,ls_velocity[0],0.,ls_velocity[1]])
+        self.lsxs.append(ls_position)
+        #Save position
+        self.position = ls_position
+        ls_time=rospy.get_time()-init_time
+        return ls_time
 
 ##########################################################################################################
 ##############################      NETCAT CLASS to conecti with EVOLOGICS       ##########################
@@ -695,6 +769,9 @@ class netcat(object):
         	data, ack, failed_num = self.send_ack(message,5)
         else:
         	data, ack, failed_num = self.send_ack(message.encode('utf-8'),5)
+        print('data=',data)
+        print('ack=',ack)
+        print('failed_num=', failed_num)
         '''       
         #Find parameters in IM notification
         start_timestamp = []
@@ -737,12 +814,48 @@ class netcat(object):
         if ack == False:
         	self.dprint('Range error occurred')
         	return -1
-        try:
-        	tof_us = int(self.send(b'AT?T'))
-        except:
+        tof_us = -1
+        for i in range(2):
+        	#try 2 times to get the range if not, return -1
+        	try:
+        		tof_us = int(self.send(b'AT?T'))
+        		break
+        	except:
+        		rospy.sleep(.1)
+        if tof_us == -1:
+        	print('ERROR: AT?T could not be sent')
         	return -1
         slant_range = tof_us/1e6 * SOUND_SPEED
         self.dprint('SlantRange = %.2f m'%slant_range)
         return slant_range
- 
+
+
+	
+	
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         

@@ -1,0 +1,355 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 0
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /tf1/Frames1
+        - /PointCloud21
+        - /PointStamped1
+      Splitter Ratio: 0.6096649765968323
+    Tree Height: 489
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 127; 127; 127
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 100
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz/TF
+      Enabled: false
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+      Marker Alpha: 1
+      Marker Scale: 1
+      Name: tf
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Value: false
+    - Alpha: 1
+      Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: world_origin
+      Radius: 0.10000000149011612
+      Reference Frame: world
+      Show Trail: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: robot_axes
+      Radius: 0.10000000149011612
+      Reference Frame: sparus2/base_link
+      Show Trail: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        sparus2/base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        sparus2/dvl:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        sparus2/dvl_altitude:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        sparus2/gps:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        sparus2/imu:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        sparus2/imu_filter:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        sparus2/pressure:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        sparus2/thruster_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        sparus2/thruster_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        sparus2/thruster_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: robot_model
+      Robot Description: sparus2/robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: true
+      Keep: 100
+      Name: navigator_odometry
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 10
+      Shape:
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Arrow
+      Topic: /sparus2/navigator/odometry
+      Unreliable: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /sparus2/navigator/markers/landmarks
+      Name: navigator_landmarks
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: true
+      Keep: 100
+      Name: simulated_odometry
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 10
+      Shape:
+        Alpha: 1
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 255; 25; 0
+        Head Length: 0.30000001192092896
+        Head Radius: 0.10000000149011612
+        Shaft Length: 1
+        Shaft Radius: 0.05000000074505806
+        Value: Arrow
+      Topic: /sparus2/dynamics/odometry
+      Unreliable: false
+      Value: true
+    - Alpha: 0.5
+      Buffer Length: 1
+      Class: rviz/Range
+      Color: 255; 255; 255
+      Enabled: false
+      Name: altitude
+      Queue Size: 100
+      Topic: /sparus2/navigator/altitude
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: trajectory_path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /sparus2/captain/trajectory_path
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/PointStamped
+      Color: 204; 41; 204
+      Enabled: true
+      History Length: 1
+      Name: pilot_goal
+      Queue Size: 10
+      Radius: 0.20000000298023224
+      Topic: /sparus2/pilot/goal
+      Unreliable: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /sparus2/pilot/waypoint_marker
+      Name: pilot_waypoint
+      Namespaces:
+        /sparus2/pilot: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /sparus2/virtual_cage/cage_marker
+      Name: virtual_cage
+      Namespaces:
+        virtual_cage: true
+      Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.10000000149011612
+      Style: Spheres
+      Topic: /stalker/target_point_cloud
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Class: rviz/PointStamped
+      Color: 239; 41; 41
+      Enabled: true
+      History Length: 1
+      Name: PointStamped
+      Queue Size: 10
+      Radius: 0.20000000298023224
+      Topic: /stalker/estimated_target_position
+      Unreliable: false
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 165; 165; 165
+    Default Light: true
+    Fixed Frame: world
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 24.627925872802734
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0.3970215320587158
+        Y: 0.39277172088623047
+        Z: 0.49425315856933594
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.9697961211204529
+      Target Frame: <Fixed Frame>
+      Yaw: 1.4143970012664795
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 893
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000200000000000002760000034afc0200000003fb000000100044006900730070006c006100790073010000001600000226000000c900fffffffb0000000a0056006900650077007301000002420000011e000000a400fffffffb0000000c00430061006d0065007200610000000041000000160000000000000000000000010000017a000003d3fc0200000001fb0000000a0049006d00610067006500000001f90000017f0000000000000000000004bc0000034a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730000000000ffffffff0000000000000000
+  Views:
+    collapsed: false
+  Width: 1848
+  X: 72
+  Y: 27
