@@ -18,13 +18,14 @@ from stalker.srv import EnableGoToWatch
 from cola2_msgs.srv import Goto
 
 #for RL algorithm
-from rl_algorithms.maddpg import MADDPG
-from rl_algorithms.matd3_bc import MATD3_BC
-from rl_algorithms.masac import MASAC
-import torch
+#from rl_algorithms.maddpg import MADDPG
+#from rl_algorithms.matd3_bc import MATD3_BC
+#from rl_algorithms.masac import MASAC
+#import torch
 import os
 from configparser import ConfigParser
-from pretrined_rl_network import rl_agent
+#from pretrined_rl_network import rl_agent
+import np_agent
 
 
 TARGET_DISTANCE_THRESHOLD = 5. #to update the go_to_watch
@@ -109,7 +110,9 @@ class TargetTracking:
         self.target_yaw = 0.
         if self.path_method == 'rl':
         	#load the a new agent using a class:
-        	self.trained_rl_agent = rl_agent(pretrined_agent)
+        	#self.trained_rl_agent = rl_agent(pretrined_agent)
+            # self.trained_rl_agent = np_agent.np_rl_agent() # A SAC agent trained with configuration: MASACa_l_v2
+            self.trained_rl_agent = np_agent.np_rnn_rl_agent() # A H-LSTM-SAC agent trained with configuration: MASACQMIX_lstm_emofish
 
 
     def update_pose(self, data):
