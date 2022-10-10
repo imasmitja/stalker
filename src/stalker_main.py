@@ -29,7 +29,7 @@ import np_agent
 
 
 TARGET_DISTANCE_THRESHOLD = 5. #to update the go_to_watch
-USE_EVOLOGICS_EMULATOR = False
+USE_EVOLOGICS_EMULATOR = True
 
 
 class TargetTracking:
@@ -198,8 +198,8 @@ class TargetTracking:
                 
                                 #Measure a new range using range_meas_service
                                 if USE_EVOLOGICS_EMULATOR == True:
-                                	info = self.measure_range(modem_id)
-                                	slant_range = info.slant_range
+                                    info = self.measure_range(i_id)
+                                    slant_range = info.slant_range
                                 else:
                                 	slant_range = np.sqrt((self.real_target_x-self.auv_position[0])**2+(self.real_target_y-self.auv_position[2])**2)
                                 	slant_range += np.random.normal(0.,1.)
