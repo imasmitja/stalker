@@ -16,13 +16,18 @@
   <arg name="timeout" default="1800"/>
   <arg name="no_altitude_goes_up" default="True"/>
   <arg name="record" default="True"/>
+  <arg name="target_estimation_method" default="PF"/>
+  <arg name="path_method" default="circumference"/>
+  <arg name="pretrined_agent" default="t8c"/>
+  <arg name="ocean_cur" default="0"/>
+  <arg name="ocean_dir" default="90"/>
   
   <!-- Load services and programs -->
   <node name="go_to_watch_service" pkg="stalker" type="go_to_watch_service.py" args='$(arg final_depth) $(arg final_altitude) $(arg reference) $(arg heave_mode) $(arg surge_velocity) $(arg tolerance_xy) $(arg timeout) $(arg no_altitude_goes_up)' output="screen">
   </node>
   <node name="measure_range_service" pkg="stalker" type="measure_range_service.py" args='$(arg debug) $(arg sim) $(arg interface)' output="screen">
   </node>
-  <node name="stalker_main" pkg="stalker" type="stalker_main.py" args='$(arg modem_id) $(arg radius) $(arg distance_between_meas) $(arg num_points)' output="screen" launch-prefix="bash -c 'sleep 12; $0 $@' ">
+  <node name="stalker_main" pkg="stalker" type="stalker_main.py" args='$(arg modem_id) $(arg radius) $(arg distance_between_meas) $(arg num_points) $(arg target_estimation_method) $(arg path_method) $(arg pretrined_agent) $(arg ocean_cur) $(arg ocean_dir)' output="screen" launch-prefix="bash -c 'sleep 12; $0 $@' ">
   </node>
   <node pkg="rosbag" type="record" name="rosbag_record_stalker" args="record -o $(env HOME)/bags/stalker -a -x '/sparus2/flir_spinnaker_camera/(.*)'" if="$(arg record)">
   </node>
