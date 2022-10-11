@@ -283,8 +283,8 @@ class TargetTracking:
                                 			self.target_yaw -= np.pi*2.
                                 		if self.target_yaw  < -np.pi*2:
                                 			self.target_yaw  += np.pi*2.
-                                		angle_waypoint_x = np.cos(self.target_yaw ) * 400.
-                                		angle_waypoint_y = np.sin(self.target_yaw ) * 400.
+                                		angle_waypoint_x = np.cos(self.target_yaw ) * 20.
+                                		angle_waypoint_y = np.sin(self.target_yaw ) * 20.
                                 		info2 = self.enable_goto(final_x=self.auv_position[0]+angle_waypoint_x,
         					 final_y=self.auv_position[2]+angle_waypoint_y,
         					  final_depth = self.depth,

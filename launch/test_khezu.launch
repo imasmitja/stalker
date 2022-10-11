@@ -1,0 +1,29 @@
+<launch>
+  <!-- Configurable arguments -->
+  <arg name="modem_id" default="1,2"/>
+  <arg name="radius" default="1"/>
+  <arg name="distance_between_meas" default="1"/>
+  <arg name="num_points" default="15"/>
+  <arg name="debug" default="False"/>
+  <arg name="sim" default="False"/>
+  <arg name="interface" default="serial"/>
+  <arg name="final_depth" default="0"/>
+  <arg name="final_altitude" default="10"/>
+  <arg name="reference" default="0"/>
+  <arg name="heave_mode" default="0"/>
+  <arg name="surge_velocity" default="0"/>
+  <arg name="tolerance_xy" default="3"/>
+  <arg name="timeout" default="1800"/>
+  <arg name="no_altitude_goes_up" default="True"/>
+  <arg name="record" default="True"/>
+  
+  <!-- Load services and programs -->
+  
+  <node name="measure_range_service" pkg="khezu" type="measure_range_service.py" args='$(arg debug) $(arg sim) $(arg interface)' output="screen">
+  </node>
+  <node name="stalker_main" pkg="khezu" type="listener_main.py" args='$(arg modem_id) $(arg radius) $(arg distance_between_meas) $(arg num_points)' output="screen" launch-prefix="bash -c 'sleep 12; $0 $@' ">
+  <node pkg="rosbag" type="record" name="rosbag_record_khezu" args="record -o $(env HOME)/bags/khezu -a -x '/sparus2/flir_spinnaker_camera/(.*)'" if="$(arg record)">
+  </node>
+  <node name="go_to_watch_service" pkg="khezu" type="go_to_watch_service.py" args='$(arg final_depth) $(arg final_altitude) $(arg reference) $(arg heave_mode) $(arg surge_velocity) $(arg tolerance_xy) $(arg timeout) $(arg no_altitude_goes_up)' output="screen">
+  </node>
+</launch>
