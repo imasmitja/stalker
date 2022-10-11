@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # license removed for brevity
+import serial
 import rospy
 import numpy as np
 from stalker.srv import EnableGoToWatch, MeasureRange, DisableGoToWatch
@@ -32,7 +33,7 @@ import np_agent
 
 
 TARGET_DISTANCE_THRESHOLD = 1. #to update the go_to_watch
-USE_EVOLOGICS_EMULATOR = False
+USE_EVOLOGICS_EMULATOR = True
 
 
 class TargetTracking:
@@ -205,12 +206,18 @@ class TargetTracking:
                                 if USE_EVOLOGICS_EMULATOR == True:
                                     for mod_id in modem_id[::-1]:
                                     	print('READING RANGE FROM MODEM ID: ',mod_id)
-                                    	info = self.measure_range(mod_id)
-                                    	slant_range = info.slant_range
+					try:
+                                    		info = self.measure_range(mod_id)
+						slant_range = info.slant_range
+                                    	except:
+						slant_range = -1
+						print('WARNING: PORT READ ERROR, RECURSIVE ACCESS')
+                                        self.dprint('New range measured: %.2f m'%slant_range)
+                                        time.sleep(5)
                                 else:
                                 	slant_range = np.sqrt((self.real_target_x-self.auv_position[0])**2+(self.real_target_y-self.auv_position[2])**2)
                                 	slant_range += np.random.normal(0.,1.)
-                                self.dprint('New range measured: %.2f m'%slant_range)
+                                	self.dprint('New range measured: %.2f m'%slant_range)
                                 if slant_range == -1:
                                 	new_range = False
                                 else:

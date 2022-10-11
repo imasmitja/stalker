@@ -706,7 +706,8 @@ class netcat(object):
         data = ''
         while 1:
             #Open port to receive response
-            read = self.port_read() 
+            read = self.port_read()
+            time.sleep(3) 
             if read == "":
                 #self.dprint('empty')
                 if delivered == True:
@@ -766,9 +767,9 @@ class netcat(object):
         else:
         	message = 'AT*SENDIM,1,'+str(remot_modem_address)+',ack,-'
         if self.python_version == 2:
-        	data, ack, failed_num = self.send_ack(message,5)
+        	data, ack, failed_num = self.send_ack(message,10)
         else:
-        	data, ack, failed_num = self.send_ack(message.encode('utf-8'),5)
+        	data, ack, failed_num = self.send_ack(message.encode('utf-8'),10)
         print('data=',data)
         print('ack=',ack)
         print('failed_num=', failed_num)

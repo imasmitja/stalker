@@ -31,5 +31,4 @@
   </node>
   <node pkg="rosbag" type="record" name="rosbag_record_stalker" args="record -o $(env HOME)/bags/stalker -a -x '/sparus2/flir_spinnaker_camera/(.*)'" if="$(arg record)">
   </node>
-  </node>
 </launch>
