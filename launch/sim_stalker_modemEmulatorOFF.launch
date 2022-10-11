@@ -1,12 +1,12 @@
 <launch>
   <!-- Configurable arguments -->
-  <arg name="modem_id" default="2"/>
+  <arg name="modem_id" default="[2,3,4]"/>
   <arg name="radius" default="5"/>
   <arg name="distance_between_meas" default="1"/>
   <arg name="num_points" default="-1"/>
   <arg name="target_estimation_method" default="PF"/>
   <arg name="path_method" default="circumference"/>
-  <arg name="pretrined_agent" default="t8c"/>
+  <arg name="pretrined_agent" default="qmix"/>
   <arg name="debug" default="False"/>
   <arg name="sim" default="True"/>
   <arg name="interface" default="ethernet"/>

@@ -19,13 +19,13 @@ class np_rl_agent(object):
         #w1(10x64)
         #w2(64x32)
         #w3(31x1)
-        self.w1 = np.loadtxt('pretrained_values/w1.txt',delimiter=',').T
-        self.w2 = np.loadtxt('pretrained_values/w2.txt',delimiter=',').T
-        self.w3 = np.loadtxt('pretrained_values/w3.txt',delimiter=',').T
+        self.w1 = np.loadtxt(path+'/pretrained_values/w1.txt',delimiter=',').T
+        self.w2 = np.loadtxt(path+'/pretrained_values/w2.txt',delimiter=',').T
+        self.w3 = np.loadtxt(path+'/pretrained_values/w3.txt',delimiter=',').T
         #bias
-        self.b1 = np.loadtxt('pretrained_values/b1.txt',delimiter=',').T
-        self.b2 = np.loadtxt('pretrained_values/b2.txt',delimiter=',').T
-        self.b3 = np.loadtxt('pretrained_values/b3.txt',delimiter=',').T
+        self.b1 = np.loadtxt(path+'/pretrained_values/b1.txt',delimiter=',').T
+        self.b2 = np.loadtxt(path+'/pretrained_values/b2.txt',delimiter=',').T
+        self.b3 = np.loadtxt(path+'/pretrained_values/b3.txt',delimiter=',').T
         
         
     #activation function
@@ -35,8 +35,9 @@ class np_rl_agent(object):
                 x[i] = 0.
         return x
     
-    def np_forward(self,x):
+    def next_action(self,x):
         #layer1 (input)
+        x = np.array(x)
         prob1 = x.dot(self.w1) + self.b1
         prob1 = self.np_relu(prob1)
         
@@ -55,56 +56,57 @@ class np_rnn_rl_agent(object):
         #w1(10x64)
         #w2(64x32)
         #w3(31x1)
-        self.w1rnn = np.loadtxt('pretrained_values/w1rnn.txt',delimiter=' ').T
-        self.w2rnn = np.loadtxt('pretrained_values/w2rnn.txt',delimiter=' ').T
-        self.w3rnn = np.loadtxt('pretrained_values/w3rnn.txt',delimiter=' ').T
+        path = os.path.dirname(os.path.abspath(__file__))
+        self.w1rnn = np.loadtxt(path+'/pretrained_values/w1rnn.txt',delimiter=' ').T
+        self.w2rnn = np.loadtxt(path+'/pretrained_values/w2rnn.txt',delimiter=' ').T
+        self.w3rnn = np.loadtxt(path+'/pretrained_values/w3rnn.txt',delimiter=' ').T
         #bias
-        self.b1rnn = np.loadtxt('pretrained_values/b1rnn.txt',delimiter=' ').T
-        self.b2rnn = np.loadtxt('pretrained_values/b2rnn.txt',delimiter=' ').T
-        self.b3rnn = np.loadtxt('pretrained_values/b3rnn.txt',delimiter=' ').T
+        self.b1rnn = np.loadtxt(path+'/pretrained_values/b1rnn.txt',delimiter=' ').T
+        self.b2rnn = np.loadtxt(path+'/pretrained_values/b2rnn.txt',delimiter=' ').T
+        self.b3rnn = np.loadtxt(path+'/pretrained_values/b3rnn.txt',delimiter=' ').T
         
         #LSTM parameters
         #ft
-        self.whf = np.loadtxt('pretrained_values/whf.txt',delimiter=' ').T
-        self.wif = np.loadtxt('pretrained_values/wif.txt',delimiter=' ').T
-        self.bhf = np.loadtxt('pretrained_values/bhf.txt',delimiter=' ').T
-        self.bif = np.loadtxt('pretrained_values/bif.txt',delimiter=' ').T
+        self.whf = np.loadtxt(path+'/pretrained_values/whf.txt',delimiter=' ').T
+        self.wif = np.loadtxt(path+'/pretrained_values/wif.txt',delimiter=' ').T
+        self.bhf = np.loadtxt(path+'/pretrained_values/bhf.txt',delimiter=' ').T
+        self.bif = np.loadtxt(path+'/pretrained_values/bif.txt',delimiter=' ').T
         #it
-        self.whi = np.loadtxt('pretrained_values/whi.txt',delimiter=' ').T
-        self.wii = np.loadtxt('pretrained_values/wii.txt',delimiter=' ').T
-        self.bhi = np.loadtxt('pretrained_values/bhi.txt',delimiter=' ').T
-        self.bii = np.loadtxt('pretrained_values/bii.txt',delimiter=' ').T
+        self.whi = np.loadtxt(path+'/pretrained_values/whi.txt',delimiter=' ').T
+        self.wii = np.loadtxt(path+'/pretrained_values/wii.txt',delimiter=' ').T
+        self.bhi = np.loadtxt(path+'/pretrained_values/bhi.txt',delimiter=' ').T
+        self.bii = np.loadtxt(path+'/pretrained_values/bii.txt',delimiter=' ').T
         #gt
-        self.whg = np.loadtxt('pretrained_values/whg.txt',delimiter=' ').T
-        self.wig = np.loadtxt('pretrained_values/wig.txt',delimiter=' ').T
-        self.bhg = np.loadtxt('pretrained_values/bhg.txt',delimiter=' ').T
-        self.big = np.loadtxt('big.txt',delimiter=' ').T
+        self.whg = np.loadtxt(path+'/pretrained_values/whg.txt',delimiter=' ').T
+        self.wig = np.loadtxt(path+'/pretrained_values/wig.txt',delimiter=' ').T
+        self.bhg = np.loadtxt(path+'/pretrained_values/bhg.txt',delimiter=' ').T
+        self.big = np.loadtxt(path+'/pretrained_values/big.txt',delimiter=' ').T
         #ot
-        self.who = np.loadtxt('pretrained_values/who.txt',delimiter=' ').T
-        self.wio = np.loadtxt('pretrained_values/wio.txt',delimiter=' ').T
-        self.bho = np.loadtxt('pretrained_values/bho.txt',delimiter=' ').T
-        self.bio = np.loadtxt('pretrained_values/bio.txt',delimiter=' ').T
+        self.who = np.loadtxt(path+'/pretrained_values/who.txt',delimiter=' ').T
+        self.wio = np.loadtxt(path+'/pretrained_values/wio.txt',delimiter=' ').T
+        self.bho = np.loadtxt(path+'/pretrained_values/bho.txt',delimiter=' ').T
+        self.bio = np.loadtxt(path+'/pretrained_values/bio.txt',delimiter=' ').T
         #Layer2
         #ft2
-        self.whf2 = np.loadtxt('pretrained_values/whf2.txt',delimiter=' ').T
-        self.wif2 = np.loadtxt('pretrained_values/wif2.txt',delimiter=' ').T
-        self.bhf2 = np.loadtxt('pretrained_values/bhf2.txt',delimiter=' ').T
-        self.bif2 = np.loadtxt('pretrained_values/bif2.txt',delimiter=' ').T
+        self.whf2 = np.loadtxt(path+'/pretrained_values/whf2.txt',delimiter=' ').T
+        self.wif2 = np.loadtxt(path+'/pretrained_values/wif2.txt',delimiter=' ').T
+        self.bhf2 = np.loadtxt(path+'/pretrained_values/bhf2.txt',delimiter=' ').T
+        self.bif2 = np.loadtxt(path+'/pretrained_values/bif2.txt',delimiter=' ').T
         #it2
-        self.whi2 = np.loadtxt('pretrained_values/whi2.txt',delimiter=' ').T
-        self.wii2 = np.loadtxt('pretrained_values/wii2.txt',delimiter=' ').T
-        self.bhi2 = np.loadtxt('pretrained_values/bhi2.txt',delimiter=' ').T
-        self.bii2 = np.loadtxt('pretrained_values/bii2.txt',delimiter=' ').T
+        self.whi2 = np.loadtxt(path+'/pretrained_values/whi2.txt',delimiter=' ').T
+        self.wii2 = np.loadtxt(path+'/pretrained_values/wii2.txt',delimiter=' ').T
+        self.bhi2 = np.loadtxt(path+'/pretrained_values/bhi2.txt',delimiter=' ').T
+        self.bii2 = np.loadtxt(path+'/pretrained_values/bii2.txt',delimiter=' ').T
         #gt2
-        self.whg2 = np.loadtxt('pretrained_values/whg2.txt',delimiter=' ').T
-        self.wig2 = np.loadtxt('pretrained_values/wig2.txt',delimiter=' ').T
-        self.bhg2 = np.loadtxt('pretrained_values/bhg2.txt',delimiter=' ').T
-        self.big2 = np.loadtxt('pretrained_values/big2.txt',delimiter=' ').T
+        self.whg2 = np.loadtxt(path+'/pretrained_values/whg2.txt',delimiter=' ').T
+        self.wig2 = np.loadtxt(path+'/pretrained_values/wig2.txt',delimiter=' ').T
+        self.bhg2 = np.loadtxt(path+'/pretrained_values/bhg2.txt',delimiter=' ').T
+        self.big2 = np.loadtxt(path+'/pretrained_values/big2.txt',delimiter=' ').T
         #ot2
-        self.who2 = np.loadtxt('pretrained_values/who2.txt',delimiter=' ').T
-        self.wio2 = np.loadtxt('pretrained_values/wio2.txt',delimiter=' ').T
-        self.bho2 = np.loadtxt('pretrained_values/bho2.txt',delimiter=' ').T
-        self.bio2 = np.loadtxt('pretrained_values/bio2.txt',delimiter=' ').T
+        self.who2 = np.loadtxt(path+'/pretrained_values/who2.txt',delimiter=' ').T
+        self.wio2 = np.loadtxt(path+'/pretrained_values/wio2.txt',delimiter=' ').T
+        self.bho2 = np.loadtxt(path+'/pretrained_values/bho2.txt',delimiter=' ').T
+        self.bio2 = np.loadtxt(path+'/pretrained_values/bio2.txt',delimiter=' ').T
         
         #LSTM Hidden states initial values
         self.ht0  = np.zeros(64) #Initial values for RNN
@@ -146,9 +148,10 @@ class np_rnn_rl_agent(object):
         ht = np.multiply(self.tanh(ct),ot)
         return ht, ct
         
-    def np_forward(self,x):
+    def next_action(self,x):
         
         #layer1 (input)
+        x = np.array(x)
         prob1 = x.dot(self.w1rnn) + self.b1rnn
         prob1 = self.np_relu(prob1)
         

@@ -18,18 +18,21 @@ from stalker.srv import EnableGoToWatch
 from cola2_msgs.srv import Goto
 
 #for RL algorithm
+
 #from rl_algorithms.maddpg import MADDPG
 #from rl_algorithms.matd3_bc import MATD3_BC
 #from rl_algorithms.masac import MASAC
+#from pretrined_rl_network import rl_agent
 #import torch
+
 import os
 from configparser import ConfigParser
-#from pretrined_rl_network import rl_agent
+
 import np_agent
 
 
-TARGET_DISTANCE_THRESHOLD = 5. #to update the go_to_watch
-USE_EVOLOGICS_EMULATOR = True
+TARGET_DISTANCE_THRESHOLD = 1. #to update the go_to_watch
+USE_EVOLOGICS_EMULATOR = False
 
 
 class TargetTracking:
@@ -110,9 +113,11 @@ class TargetTracking:
         self.target_yaw = 0.
         if self.path_method == 'rl':
         	#load the a new agent using a class:
-        	#self.trained_rl_agent = rl_agent(pretrined_agent)
-            # self.trained_rl_agent = np_agent.np_rl_agent() # A SAC agent trained with configuration: MASACa_l_v2
-            self.trained_rl_agent = np_agent.np_rnn_rl_agent() # A H-LSTM-SAC agent trained with configuration: MASACQMIX_lstm_emofish
+            #self.trained_rl_agent2 = rl_agent(pretrined_agent)
+            if pretrined_agent != 'qmix':
+            	self.trained_rl_agent = np_agent.np_rl_agent() # A SAC agent trained with configuration: MASACa_l_v2
+            else:
+            	self.trained_rl_agent = np_agent.np_rnn_rl_agent() # A H-LSTM-SAC agent trained with configuration: MASACQMIX_lstm_emofish
 
 
     def update_pose(self, data):
@@ -161,7 +166,7 @@ class TargetTracking:
         last_time = rospy.get_time()
         #Start searching using the initial AUV position
         rospy.sleep(1.)
-        self.go_to_watch(self.auv_position[0],self.auv_position[2],radius,12,True)
+        self.go_to_watch(self.auv_position[0],self.auv_position[2],radius,6,True)
         #Init point cloud and estimated target position publishers
         self.publish_estimated_position(target,target.pf.x.T[0],target.pf.x.T[2])
         
@@ -198,8 +203,10 @@ class TargetTracking:
                 
                                 #Measure a new range using range_meas_service
                                 if USE_EVOLOGICS_EMULATOR == True:
-                                    info = self.measure_range(i_id)
-                                    slant_range = info.slant_range
+                                    for mod_id in modem_id[::-1]:
+                                    	print('READING RANGE FROM MODEM ID: ',mod_id)
+                                    	info = self.measure_range(mod_id)
+                                    	slant_range = info.slant_range
                                 else:
                                 	slant_range = np.sqrt((self.real_target_x-self.auv_position[0])**2+(self.real_target_y-self.auv_position[2])**2)
                                 	slant_range += np.random.normal(0.,1.)
@@ -247,14 +254,14 @@ class TargetTracking:
                                 		if self.dnn == 'qmix':
                                 			obs_fake_speed = [float(np.cos(self.current_yaw))*0.3,
 		                        			float(np.sin(self.current_yaw))*0.3,
-		                        			float(self.auv_position[0])/1000.,
-		                        			float(self.auv_position[2])/1000.,
-		                        			float(target.position[0]-self.auv_position[0])/1000., 
-		                        			float(target.position[2]-self.auv_position[2])/1000., 
-		                        			float(slant_range)/1000.,
-		                        			float(15.)/1000.,
-		                        			float(self.auv_origin_x)/1000.,
-		                        			float(self.auv_origin_y)/1000.] 
+		                        			float(self.auv_position[0])/50.,
+		                        			float(self.auv_position[2])/50.,
+		                        			float(target.position[0]-self.auv_position[0])/50., 
+		                        			float(target.position[2]-self.auv_position[2])/50., 
+		                        			float(slant_range)/50.,
+		                        			float(15.)/50.,
+		                        			float(self.auv_origin_x)/50.,
+		                        			float(self.auv_origin_y)/50.] 
                                 		else:
                                 			obs_fake_speed = [float(np.cos(self.current_yaw))*0.3,
                                 				float(np.sin(self.current_yaw))*0.3,
@@ -266,9 +273,11 @@ class TargetTracking:
                                 		#0.03 is the speed used to train the model
                                 		#action = self.trained_rl_agent.next_action(obs)
                                 		action = self.trained_rl_agent.next_action(obs_fake_speed)
+                                		#action2 = self.trained_rl_agent2.next_action(obs_fake_speed)
+                                		#print('NEW deepRL action1=%.2f, action2=%.2f'%(action,action2))
                                 		print('NEW deepRL action=',action)
                                 		print('obs              =', obs_fake_speed)
-                                		inc_angle = action * 0.3 #we multiply by 0.3 to limit the minimum angle that the AUV can do
+                                		inc_angle = action * 0.9 #we multiply by 0.3 to limit the minimum angle that the AUV can do
                                 		self.target_yaw  = self.target_yaw + inc_angle
                                 		if self.target_yaw  > np.pi*2.:
                                 			self.target_yaw -= np.pi*2.
@@ -290,9 +299,9 @@ class TargetTracking:
                                 	else: # path_method == 'Circle'
                                 		#Move the center of the circunference using go_to_watch_service
                                 		if abs(old_target_position[0]-target.position[0])<500 and abs(old_target_position[2]-target.position[2])<500:
-                                			self.go_to_watch(target.position[0],target.position[2],radius,12,True)
+                                			self.go_to_watch(target.position[0],target.position[2],radius,6,True)
                                 		else:
-                                			self.go_to_watch(200,200.,radius,12,True)
+                                			self.go_to_watch(200,200.,radius,6,True)
                                 		old_target_position = target.position
                                 
                                 
@@ -403,7 +412,7 @@ class TargetTracking:
 if __name__ == '__main__':
     try:
         try:
-            modem_id = int(sys.argv[1])
+            modem_id = (sys.argv[1])
             radius = float(sys.argv[2])
             distance_between_meas = int(sys.argv[3])
             num_points = float(sys.argv[4])
@@ -432,7 +441,7 @@ if __name__ == '__main__':
             sys.exit()
         target = Target()
         tracker = TargetTracking(target_estimation_method, path_method, pretrined_agent)
-        tracker.start(target, modem_id, radius, distance_between_meas, num_points,ocean_current,ocean_current_direction)
+        tracker.start(target, np.array(modem_id.split(','),dtype=int), radius, distance_between_meas, num_points,ocean_current,ocean_current_direction)
         print('Done')
 
     except rospy.ROSInterruptException or KeyboardInterrupt:

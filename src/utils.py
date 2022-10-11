@@ -457,7 +457,7 @@ class Target(object):
         #self.pf = ParticleFilter(std_range=20.,init_velocity=.2,dimx=4,particle_number=10000,method=method,max_pf_range=max_pf_range)
         #self.pf.set_noise(forward_noise = 0.01, turn_noise = 0.1, sense_noise=5., velocity_noise = 0.01)
         
-        self.pf = ParticleFilter(std_range=20.,init_velocity=0.4,dimx=4,particle_number=10000,method=method,max_pf_range=max_pf_range)
+        self.pf = ParticleFilter(std_range=20.,init_velocity=0.2,dimx=4,particle_number=6000,method=method,max_pf_range=max_pf_range)
         # self.pf.set_noise(forward_noise = 0.01, turn_noise = .5, sense_noise=2., velocity_noise = 0.01)
         self.pf.set_noise(forward_noise = 1., turn_noise = .9, sense_noise=5., velocity_noise = 0.01)
         

@@ -18,7 +18,7 @@
   <arg name="record" default="True"/>
   <arg name="target_estimation_method" default="PF"/>
   <arg name="path_method" default="circumference"/>
-  <arg name="pretrined_agent" default="t8c"/>
+  <arg name="pretrined_agent" default="qmix"/>
   <arg name="ocean_cur" default="0"/>
   <arg name="ocean_dir" default="90"/>
   
