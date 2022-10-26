@@ -92,7 +92,7 @@ class TargetTracking:
         self.pose = NavSts()
         self.r_targ_pos = PointStamped()
         #initial AUV position variables
-        self.depth = 0.
+        self.depth = 4.
         self.auv_position = [0., 0., 0., 0.]
         self.current_yaw = 0.
         #initial position of the target
@@ -196,6 +196,8 @@ class TargetTracking:
         p_target_x_t = []
         p_target_y_t = []
         range_t = []
+        origin_northing_t = []
+        origin_easting_t = []
         while  not rospy.is_shutdown():
                 try:
                         #Distance traveled since last time
@@ -232,7 +234,7 @@ class TargetTracking:
                                 
                                 if self.target_estimation_method == 'pf':
                                 	#Update the estimated target position using a Particle Filter 
-                                	target.updatePF(dt=rospy.get_time()-last_time, new_range=new_range, z=slant_range, myobserver=self.auv_position, update=True)
+                                	target.updatePF(dt=rospy.get_time()-last_time, new_range=new_range, z=slant_range, myobserver=self.auv_position, update=new_range)
                                 else:
                                 	#Update the estimated target position using a Least Square method
                                 	target.updateLS(dt=rospy.get_time()-last_time, new_range=new_range, z=slant_range, myobserver=self.auv_position)
@@ -245,7 +247,7 @@ class TargetTracking:
                         
                                 #See if target estimation has changed significantly
                                 target_distance = np.sqrt((target.position[0]-old_target_position[0])**2+(target.position[2]-old_target_position[2])**2)
-                                if target_distance > TARGET_DISTANCE_THRESHOLD or self.path_method == 'rl' and new_range == True:
+                                if target_distance > TARGET_DISTANCE_THRESHOLD or self.path_method == 'rl':
                                 	#Move the AUV using standard Circle path:
                                 	if self.path_method == 'rl':
                                 		self.disable_go_to_watch()
@@ -259,7 +261,10 @@ class TargetTracking:
                                 			float(target.position[2]-self.auv_position[2])/1000., 
                                 			float(slant_range)/1000.]
                                 		if self.dnn == 'qmix':
-                                			obs_fake_speed = [float(np.cos(self.current_yaw))*0.3,
+
+                                			if slant_range == -1:
+								slant_range = 10
+							obs_fake_speed = [float(np.cos(self.current_yaw))*0.3,
 		                        			float(np.sin(self.current_yaw))*0.3,
 		                        			float(self.auv_position[0])/50.,
 		                        			float(self.auv_position[2])/50.,
@@ -284,21 +289,21 @@ class TargetTracking:
                                 		#print('NEW deepRL action1=%.2f, action2=%.2f'%(action,action2))
                                 		print('NEW deepRL action=',action)
                                 		print('obs              =', obs_fake_speed)
-                                		inc_angle = action * 0.9 #we multiply by 0.3 to limit the minimum angle that the AUV can do
+                                		inc_angle = action * 0.3 #we multiply by 0.3 to limit the minimum angle that the AUV can do
                                 		self.target_yaw  = self.target_yaw + inc_angle
                                 		if self.target_yaw  > np.pi*2.:
                                 			self.target_yaw -= np.pi*2.
                                 		if self.target_yaw  < -np.pi*2:
                                 			self.target_yaw  += np.pi*2.
-                                		angle_waypoint_x = np.cos(self.target_yaw ) * 20.
-                                		angle_waypoint_y = np.sin(self.target_yaw ) * 20.
+                                		angle_waypoint_x = np.cos(self.target_yaw ) * 30.
+                                		angle_waypoint_y = np.sin(self.target_yaw ) * 30.
                                 		info2 = self.enable_goto(final_x=self.auv_position[0]+angle_waypoint_x,
         					 final_y=self.auv_position[2]+angle_waypoint_y,
-        					  final_depth = self.depth,
-        					   final_altitude = 10,
+        					  final_depth = 4,
+        					   final_altitude = 4,
         					    reference = 0,
         					     heave_mode = 0,
-        					      surge_velocity = 1,
+        					      surge_velocity = 0.4,
         					       tolerance_xy = 3,
         					        timeout = 1800,
         					         no_altitude_goes_up = True)
@@ -313,7 +318,7 @@ class TargetTracking:
                                 
                                 
                                 #save data for post-processing
-                                header = 'timestamp auv_x auv_y auv_vx auv_vy real_target_x real_target_y p_target_x p_target_y range'
+                                header = 'timestamp auv_x auv_y auv_vx auv_vy real_target_x real_target_y p_target_x p_target_y range origin_northing origin_easting'
                                 timestamp_t.append(time.time())
                                 auv_x_t.append(self.auv_position[0])
                                 auv_y_t.append(self.auv_position[2])
@@ -324,6 +329,8 @@ class TargetTracking:
                                 p_target_x_t.append(target.position[0])
                                 p_target_y_t.append(target.position[2])
                                 range_t.append(slant_range)
+                                origin_northing_t.append(origin_northing)
+                                origin_easting_t.append(origin_easting)
                                 aux_t = np.concatenate((np.matrix(timestamp_t),
                                 			np.matrix(auv_x_t),
                                 			np.matrix(auv_y_t),
@@ -333,7 +340,9 @@ class TargetTracking:
                                 			np.matrix(real_target_y_t),
                                 			np.matrix(p_target_x_t),
                                 			np.matrix(p_target_y_t),
-                                			np.matrix(range_t)),axis=0)
+                                			np.matrix(range_t),
+                                            np.matrix(origin_northing_t),
+                                            np.matrix(origin_easting_t)),axis=0)
                                 path_to_save = os.path.dirname(os.getcwd())+'/catkin_ws/src/stalker/src/'
                                 np.savetxt(path_to_save+'log_test_'+date_time_folder+'.txt', aux_t.T, fmt="%.6f", header=header, delimiter =',') 
                                 

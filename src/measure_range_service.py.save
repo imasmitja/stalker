@@ -30,9 +30,10 @@ class SlantRange:
         self.name = rospy.get_name()
         namespace = rospy.get_namespace()
         self.get_config()
-        self.rangemodem = -1
-	self.lasttime = rospy.Time().now()
-        self.pub_range_info = rospy.Publisher("stalker/range_info",Range, queue_size=1)
+
+
+        self.pub_range_info = rospy.Publisher("stalker/range_info",
+										Range, queue_size=1)
         # A service
         self.srv = rospy.Service('stalker/measure_range', MeasureRange,
         					self.measure_range_callback)
@@ -52,55 +53,41 @@ class SlantRange:
         self.auv_z = 0
         self.pose = NavSts()
         self.flag = 0
-        
         self.smph = Semaphore(1)
-        rospy.Timer(rospy.Duration(6), self.range_info_callback)
-#	self.rangemodem = 0
+        rospy.Timer(rospy.Duration(20), self.range_info_callback)
+
         
     def range_info_callback(self,event):
-       # self.mod_id = [1,2]
-	self.smph.acquire()
+        #modem_id = [1,2]
         for i in self.mod_id:
-             #self.smph.acquire()
-             #print('-----CALL 2 MODEM CALLBACK----- modem_id:' + str(i) + ' STARTED')
-             #start_timer_callback = time.process_time()
-             try:
-                 slant_range = self.modem.slant_range(i)
-		 self.rangemodem = slant_range
-                 #print(time.process_time() - start_timer_callback)
-             except: 
-                 slant_range = -1
-                 print('WARNING: PORT READ ERROR, RECURSIVE ACCESS')
-             #print('-----CALL 2 MODEM CALLBACK----- modem_id: ' + str(i) + ' ENDED')
-             #self.smph.release()
-             rangeinfo = Range()
-             rangeinfo.id = i
-             rangeinfo.range = slant_range
-             rangeinfo.header.frame_id = "sparus2/modem"
-             rangeinfo.header.stamp = rospy.Time().now()
-             self.pub_range_info.publish(rangeinfo)
-	     if i==1:
-	     	self.lasttime = rospy.Time().now()
-	#	self.rangemodem = slant_range
-             
-	self.smph.release() 
+            self.smph.acquire()
+            try:
+               self. slant_range = self.modem.slant_range(i)
+            except: 
+                slant_range = -1
+                print('WARNING: PORT READ ERROR, RECURSIVE ACCESS')
+            self.smph.release()
+            print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+            rangeinfo = Range()
+            rangeinfo.id = i
+            rangeinfo.range = slant_range
+            rangeinfo.header.frame_id = "sparus2/modem"
+            rangeinfo.header.stamp = rospy.Time().now()
+            self.pub_range_info.publish(rangeinfo)
+
 
     def measure_range_callback(self, request):
     	#send a message to the remote acoustic modem to compute the time of flight and obtain the slant range
     	#slant_range =  100. #this is fake, used only for debuging purposes
         self.flag = request.modem_id
-        slant_range = self.rangemodem
-        newtime = rospy.Time().now()
-        if (newtime.secs-self.lasttime.secs)>20:
-#        	print('Acquiring new data!')
-#        	self.smph.acquire()
-#        	if self.sim_modem_mov == True:
-#            		self.modem.move(self.auv_x,self.auv_y,self.auv_z)
-#        	slant_range = self.modem.slant_range(request.modem_id)
-#        	self.smph.release()
-		slant_range = -1
+        self.smph.acquire()
+        if self.sim_modem_mov == True:
+            self.modem.move(self.auv_x,self.auv_y,self.auv_z)
+        slant_range = self.modem.slant_range(request.modem_id)
+        self.smph.release()
+        print('BBBBBBBBBBBBBBBBBBBBBBBBBBB')
         return slant_range
-
+    
     def update_pose(self, data):
         """Callback function which is called when a new message of type NavSts is
         received by the subscriber."""

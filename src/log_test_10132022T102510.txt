@@ -1,0 +1,2 @@
+# timestamp auv_x auv_y auv_vx auv_vy real_target_x real_target_y p_target_x p_target_y range
+1665656774.120559,-0.000000,0.000000,-0.017203,-0.026449,0.000000,0.000000,0.000000,0.000000,-1.000000

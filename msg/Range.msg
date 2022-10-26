@@ -3,10 +3,5 @@
 Header 	header
 
 # NED position and altitude in metres. 
-Range range
-Modem_ID id
-
-DecimalLatLon global_position
-NED position
-
-
+float64 range
+uint8 id

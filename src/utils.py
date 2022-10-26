@@ -495,7 +495,7 @@ class Target(object):
                 self.pf.measurement_prob(measurement=z,observer=myobserver)
                 if max(self.pf.w) == 0:
                     self.pf.init_particles(position=self.pf.previous_observer, slantrange=self.pf.previous_z)
-                    self.pf.measurement_prob(measurement=z,observer=myobserver,error_mult=50.)       
+                    self.pf.measurement_prob(measurement=z,observer=myobserver,error_mult=20.)       
                 #Resampling        
                 self.pf.resampling(z)
                 # Calculate the avarage error. If it's too big the particle filter is initialized                    
@@ -707,7 +707,7 @@ class netcat(object):
         while 1:
             #Open port to receive response
             read = self.port_read()
-            time.sleep(3) 
+            #time.sleep(3) 
             if read == "":
                 #self.dprint('empty')
                 if delivered == True:
