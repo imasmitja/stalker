@@ -77,6 +77,7 @@ class TargetTracking:
         	self.enable_goto = rospy.ServiceProxy('/sparus2/captain/enable_goto',Goto)        
         except rospy.ServiceException as e:
         	print("Service call failed: %s"%e)
+           
         	
                 
         # A publisher to publish pointcloud based on Particle Filters
@@ -102,6 +103,9 @@ class TargetTracking:
         self.dnn = pretrined_agent
         self.auv_origin_x = 0.
         self.auv_origin_y = 0.
+        
+        self.origin_easting = 0.
+        self.origin_northing = 0.
         
         #debug options
         self.debug_print = True
@@ -135,10 +139,10 @@ class TargetTracking:
         lon = self.pose.origin.longitude
         #AUV current position in UTM format
         tuple = utm.from_latlon(lat, lon)
-        origin_easting, origin_northing, zonenumber, zoneletter = tuple
-        #Update AUV position variables
-        self.auv_position[0] = northing - origin_northing
-        self.auv_position[2] = easting - origin_easting
+        self.origin_easting, self.origin_northing, zonenumber, zoneletter = tuple
+        #Update AUV position variables 
+        self.auv_position[0] = easting - self.origin_easting
+        self.auv_position[2] = northing - self.origin_northing
         self.auv_position[1] = self.pose.body_velocity.x
         self.auv_position[3] = self.pose.body_velocity.y
         self.depth = self.pose.position.depth
@@ -154,7 +158,7 @@ class TargetTracking:
         return
         
         
-    def start(self,target, modem_id, radius, distance_between_meas, num_points, ocean_current = 0, ocean_current_direction = 0):
+    def start(self,target, modem_id, radius, distance_between_meas, num_points, ocean_current=0, ocean_current_direction=0, final_depth=0, final_altitude=0, surge_velocity=0):
         """
         1- Estimates the target position using range-only method based on Particle Filter or Least Squares
         2- Move the AUV arount the target estimation using a circunference with determined radius
@@ -168,8 +172,13 @@ class TargetTracking:
         #Start searching using the initial AUV position
         rospy.sleep(1.)
         self.go_to_watch(self.auv_position[0],self.auv_position[2],radius,6,True)
+        
+        #Initialize the estimated target position with current initial AUV position
+        target.position[0] = self.auv_position[0]
+        target.position[2] = self.auv_position[2]
+        
         #Init point cloud and estimated target position publishers
-        self.publish_estimated_position(target,target.pf.x.T[0],target.pf.x.T[2])
+        self.publish_estimated_position(target,target.position[0],target.position[2])
         
         #Set ocean currents
         print("Set ocean currents into the environment: Current=%.3f, Direction=%.3f"%(ocean_current,ocean_current_direction))
@@ -196,173 +205,189 @@ class TargetTracking:
         p_target_x_t = []
         p_target_y_t = []
         range_t = []
+        new_range_flag_t = []
         origin_northing_t = []
         origin_easting_t = []
+        angle_waypoint_x_t = []
+        angle_waypoint_y_t = []
+        new_range_flag = -1
+        angle_waypoint_x = 0.
+        angle_waypoint_y = 0.
         while  not rospy.is_shutdown():
                 try:
-                        #Distance traveled since last time
-                        auv_distance = np.sqrt((self.auv_position[0]-old_auv_position[0])**2+(self.auv_position[2]-old_auv_position[2])**2)
-                        if auv_distance > auv_distance_threshold or (rospy.get_time()-last_time) > 60.:
+                    #Distance traveled since last time
+                    auv_distance = np.sqrt((self.auv_position[0]-old_auv_position[0])**2+(self.auv_position[2]-old_auv_position[2])**2)
+                    if auv_distance > auv_distance_threshold or (rospy.get_time()-last_time) > 60.:
+                        #Measure a new range using range_meas_service
+                        if USE_EVOLOGICS_EMULATOR == True:
+                            for mod_id in modem_id[::-1]:
+                                print('READING RANGE FROM MODEM ID: ',mod_id)
+                                    try:
+                                    	info = self.measure_range(mod_id)
+                                        slant_range = info.slant_range
+                                    except:
+                                        slant_range = -1
+                                        print('WARNING: PORT READ ERROR, RECURSIVE ACCESS')
+                                self.dprint('New range measured: %.2f m'%slant_range)
+                                time.sleep(5)
+                        else:
+                            slant_range = np.sqrt((self.real_target_x-self.auv_position[0])**2+(self.real_target_y-self.auv_position[2])**2)
+                            slant_range += np.random.normal(0.,1.)
+                            self.dprint('New range measured: %.2f m'%slant_range)
+                        
+                        if slant_range == -1:
+                            new_range = False
+                            new_range_flag = -1
+                        else:
+                            new_range = True
+                            new_range_flag = 1
+                            self.auv_origin_x = self.auv_position[0]
+                            self.auv_origin_y = self.auv_position[2]
+                 
+                        #Publish the last range measured
+                        header = std_msgs.Header(frame_id='world_ned',stamp=rospy.Time.now())
+                        last_range = sensor_msgs.Range(header=header, field_of_view = 0.1,  range= slant_range)
+                        self.last_range_measured.publish(last_range)
+                        
+                        if self.target_estimation_method == 'pf':
+                            #Update the estimated target position using a Particle Filter 
+                            target.updatePF(dt=rospy.get_time()-last_time, new_range=new_range, z=slant_range, myobserver=self.auv_position, update=new_range)
+                        else:
+                            #Update the estimated target position using a Least Square method
+                            target.updateLS(dt=rospy.get_time()-last_time, new_range=new_range, z=slant_range, myobserver=self.auv_position)
+                        
+                        last_time = rospy.get_time()
+                        self.dprint('New estimated target position at x=%.2f m, y=%.2f m'%(target.position[0],target.position[2]))
+                        # Publish the estimated target position
+                        #self.publish_estimated_position(target,target.pf.x.T[0],target.pf.x.T[2])
+                        self.publish_estimated_position(target,target.position[0],target.position[2])
+                        
                 
-                                #Measure a new range using range_meas_service
-                                if USE_EVOLOGICS_EMULATOR == True:
-                                    for mod_id in modem_id[::-1]:
-                                    	print('READING RANGE FROM MODEM ID: ',mod_id)
-					try:
-                                    		info = self.measure_range(mod_id)
-						slant_range = info.slant_range
-                                    	except:
-						slant_range = -1
-						print('WARNING: PORT READ ERROR, RECURSIVE ACCESS')
-                                        self.dprint('New range measured: %.2f m'%slant_range)
-                                        time.sleep(5)
-                                else:
-                                	slant_range = np.sqrt((self.real_target_x-self.auv_position[0])**2+(self.real_target_y-self.auv_position[2])**2)
-                                	slant_range += np.random.normal(0.,1.)
-                                	self.dprint('New range measured: %.2f m'%slant_range)
+                        #See if target estimation has changed significantly
+                        target_distance = np.sqrt((target.position[0]-old_target_position[0])**2+(target.position[2]-old_target_position[2])**2)
+                        if target_distance > TARGET_DISTANCE_THRESHOLD or self.path_method == 'rl':
+                            #Move the AUV using standard Circle path:
+                            if self.path_method == 'rl':
+                                self.disable_go_to_watch()
+                                #Send the AUV using the angle (yaw) action generated by the deep RL network
                                 if slant_range == -1:
-                                	new_range = False
+                                    #compute the range from the last target estimated position
+                                    slant_range = np.sqrt((target.position[0]-self.auv_position[0])**2+(target.position[2]-self.auv_position[2])**2)
+                                #get action
+                                obs = [float(self.auv_position[1])/1000.,
+                                        float(self.auv_position[3])/1000.,
+                                        float(self.auv_position[0])/1000.,
+                                        float(self.auv_position[2])/1000.,
+                                        float(target.position[0]-self.auv_position[0])/1000., 
+                                        float(target.position[2]-self.auv_position[2])/1000., 
+                                        float(slant_range)/1000.]
+                                if self.dnn == 'qmix':
+                                    obs_fake_speed = [float(np.cos(self.current_yaw))*0.3,
+                                                    float(np.sin(self.current_yaw))*0.3,
+                                                    float(self.auv_position[0])/50.,
+                                                    float(self.auv_position[2])/50.,
+                                                    float(target.position[0]-self.auv_position[0])/50., 
+                                                    float(target.position[2]-self.auv_position[2])/50., 
+                                                    float(slant_range)/50.,
+                                                    float(15.)/50.,
+                                                    float(self.auv_origin_x)/50.,
+                                                    float(self.auv_origin_y)/50.] 
                                 else:
-                                	new_range = True
-                                	self.auv_origin_x = self.auv_position[0]
-                                	self.auv_origin_y = self.auv_position[2]
-                         
-                                #Publish the last range measured
-                                header = std_msgs.Header(frame_id='world_ned',stamp=rospy.Time.now())
-                                last_range = sensor_msgs.Range(header=header, field_of_view = 0.1,  range= slant_range)
-                                self.last_range_measured.publish(last_range)
-                                
-                                if self.target_estimation_method == 'pf':
-                                	#Update the estimated target position using a Particle Filter 
-                                	target.updatePF(dt=rospy.get_time()-last_time, new_range=new_range, z=slant_range, myobserver=self.auv_position, update=new_range)
+                                    obs_fake_speed = [float(np.cos(self.current_yaw))*0.3,
+                                                    float(np.sin(self.current_yaw))*0.3,
+                                                    float(self.auv_position[0])/50.,
+                                                    float(self.auv_position[2])/50.,
+                                                    float(target.position[0]-self.auv_position[0])/50., 
+                                                    float(target.position[2]-self.auv_position[2])/50., 
+                                                    float(slant_range)/50.] 
+                                #0.03 is the speed used to train the model
+                                #action = self.trained_rl_agent.next_action(obs)
+                                action = self.trained_rl_agent.next_action(obs_fake_speed)
+                                #action2 = self.trained_rl_agent2.next_action(obs_fake_speed)
+                                #print('NEW deepRL action1=%.2f, action2=%.2f'%(action,action2))
+                                print('NEW deepRL action=',action)
+                                print('obs              =', obs_fake_speed)
+                                inc_angle = action * 0.3 #we multiply by 0.3 to limit the minimum angle that the AUV can do
+                                self.target_yaw  = self.target_yaw + inc_angle
+                                if self.target_yaw  > np.pi*2.:
+                                    self.target_yaw -= np.pi*2.
+                                if self.target_yaw  < -np.pi*2:
+                                    self.target_yaw  += np.pi*2.
+                                angle_waypoint_x = np.cos(self.target_yaw ) * 30.
+                                angle_waypoint_y = np.sin(self.target_yaw ) * 30.
+                                info2 = self.enable_goto(final_x=self.auv_position[0]+angle_waypoint_x,
+                                                         final_y=self.auv_position[2]+angle_waypoint_y,
+                                                          final_depth = final_depth,
+                                                           final_altitude = final_altitude,
+                                                            reference = 0,
+                                                             heave_mode = 0,
+                                                              surge_velocity = surge_velocity,
+                                                               tolerance_xy = 3,
+                                                                timeout = 1800,
+                                                                 no_altitude_goes_up = True)
+                                                                    old_target_position = target.position
+                            else: # path_method == 'Circle'
+                                #Move the center of the circunference using go_to_watch_service
+                                if abs(old_target_position[0]-target.position[0])<500 and abs(old_target_position[2]-target.position[2])<500:
+                                    self.go_to_watch(target.position[0],target.position[2],radius,6,True)
                                 else:
-                                	#Update the estimated target position using a Least Square method
-                                	target.updateLS(dt=rospy.get_time()-last_time, new_range=new_range, z=slant_range, myobserver=self.auv_position)
-                                
-                                last_time = rospy.get_time()
-                                self.dprint('New estimated target position at x=%.2f m, y=%.2f m'%(target.position[0],target.position[2]))
-                                # Publish the estimated target position
-                                self.publish_estimated_position(target,target.pf.x.T[0],target.pf.x.T[2]) 
-                                
+                                    self.go_to_watch(200,200.,radius,6,True)
+                                old_target_position = target.position
                         
-                                #See if target estimation has changed significantly
-                                target_distance = np.sqrt((target.position[0]-old_target_position[0])**2+(target.position[2]-old_target_position[2])**2)
-                                if target_distance > TARGET_DISTANCE_THRESHOLD or self.path_method == 'rl':
-                                	#Move the AUV using standard Circle path:
-                                	if self.path_method == 'rl':
-                                		self.disable_go_to_watch()
-                                		#Send the AUV using the angle (yaw) action generated by the deep RL network
-                                		#get action
-                                		obs = [float(self.auv_position[1])/1000.,
-                                			float(self.auv_position[3])/1000.,
-                                			float(self.auv_position[0])/1000.,
-                                			float(self.auv_position[2])/1000.,
-                                			float(target.position[0]-self.auv_position[0])/1000., 
-                                			float(target.position[2]-self.auv_position[2])/1000., 
-                                			float(slant_range)/1000.]
-                                		if self.dnn == 'qmix':
-
-                                			if slant_range == -1:
-								slant_range = 10
-							obs_fake_speed = [float(np.cos(self.current_yaw))*0.3,
-		                        			float(np.sin(self.current_yaw))*0.3,
-		                        			float(self.auv_position[0])/50.,
-		                        			float(self.auv_position[2])/50.,
-		                        			float(target.position[0]-self.auv_position[0])/50., 
-		                        			float(target.position[2]-self.auv_position[2])/50., 
-		                        			float(slant_range)/50.,
-		                        			float(15.)/50.,
-		                        			float(self.auv_origin_x)/50.,
-		                        			float(self.auv_origin_y)/50.] 
-                                		else:
-                                			obs_fake_speed = [float(np.cos(self.current_yaw))*0.3,
-                                				float(np.sin(self.current_yaw))*0.3,
-                                				float(self.auv_position[0])/1000.,
-                                				float(self.auv_position[2])/1000.,
-                                				float(target.position[0]-self.auv_position[0])/1000., 
-                                				float(target.position[2]-self.auv_position[2])/1000., 
-                                				float(slant_range)/1000.] 
-                                		#0.03 is the speed used to train the model
-                                		#action = self.trained_rl_agent.next_action(obs)
-                                		action = self.trained_rl_agent.next_action(obs_fake_speed)
-                                		#action2 = self.trained_rl_agent2.next_action(obs_fake_speed)
-                                		#print('NEW deepRL action1=%.2f, action2=%.2f'%(action,action2))
-                                		print('NEW deepRL action=',action)
-                                		print('obs              =', obs_fake_speed)
-                                		inc_angle = action * 0.3 #we multiply by 0.3 to limit the minimum angle that the AUV can do
-                                		self.target_yaw  = self.target_yaw + inc_angle
-                                		if self.target_yaw  > np.pi*2.:
-                                			self.target_yaw -= np.pi*2.
-                                		if self.target_yaw  < -np.pi*2:
-                                			self.target_yaw  += np.pi*2.
-                                		angle_waypoint_x = np.cos(self.target_yaw ) * 30.
-                                		angle_waypoint_y = np.sin(self.target_yaw ) * 30.
-                                		info2 = self.enable_goto(final_x=self.auv_position[0]+angle_waypoint_x,
-        					 final_y=self.auv_position[2]+angle_waypoint_y,
-        					  final_depth = 4,
-        					   final_altitude = 4,
-        					    reference = 0,
-        					     heave_mode = 0,
-        					      surge_velocity = 0.4,
-        					       tolerance_xy = 3,
-        					        timeout = 1800,
-        					         no_altitude_goes_up = True)
-                                		old_target_position = target.position
-                                	else: # path_method == 'Circle'
-                                		#Move the center of the circunference using go_to_watch_service
-                                		if abs(old_target_position[0]-target.position[0])<500 and abs(old_target_position[2]-target.position[2])<500:
-                                			self.go_to_watch(target.position[0],target.position[2],radius,6,True)
-                                		else:
-                                			self.go_to_watch(200,200.,radius,6,True)
-                                		old_target_position = target.position
-                                
-                                
-                                #save data for post-processing
-                                header = 'timestamp auv_x auv_y auv_vx auv_vy real_target_x real_target_y p_target_x p_target_y range origin_northing origin_easting'
-                                timestamp_t.append(time.time())
-                                auv_x_t.append(self.auv_position[0])
-                                auv_y_t.append(self.auv_position[2])
-                                auv_vx_t.append(self.auv_position[1])
-                                auv_vy_t.append(self.auv_position[3])
-                                real_target_x_t.append(self.real_target_x)
-                                real_target_y_t.append(self.real_target_y)
-                                p_target_x_t.append(target.position[0])
-                                p_target_y_t.append(target.position[2])
-                                range_t.append(slant_range)
-                                origin_northing_t.append(origin_northing)
-                                origin_easting_t.append(origin_easting)
-                                aux_t = np.concatenate((np.matrix(timestamp_t),
-                                			np.matrix(auv_x_t),
-                                			np.matrix(auv_y_t),
-                                			np.matrix(auv_vx_t),
-                                			np.matrix(auv_vy_t),
-                                			np.matrix(real_target_x_t),
-                                			np.matrix(real_target_y_t),
-                                			np.matrix(p_target_x_t),
-                                			np.matrix(p_target_y_t),
-                                			np.matrix(range_t),
-                                            np.matrix(origin_northing_t),
-                                            np.matrix(origin_easting_t)),axis=0)
-                                path_to_save = os.path.dirname(os.getcwd())+'/catkin_ws/src/stalker/src/'
-                                np.savetxt(path_to_save+'log_test_'+date_time_folder+'.txt', aux_t.T, fmt="%.6f", header=header, delimiter =',') 
-                                
-                                #See if the AUV is on the circle (i.e. is conducting the circunference, not going to it)
-                                auv_distance_from_target = np.sqrt((self.auv_position[0]-target.position[0])**2+(self.auv_position[2]-target.position[2])**2) 
-                                if auv_distance_from_target>(radius-5) and auv_distance_from_target<(radius+5):
-                                        if num_points == -1:
-                                                self.dprint('Iteration '+str(iteration)+'/--')
-                                        else:
-                                                self.dprint('Iteration '+str(iteration)+'/'+str(int(num_points+2)))
-                                        if iteration > num_points+1 and num_points != -1:
-                                                self.disable_go_to_watch()
-                                                break
-                                        iteration += 1
-                                old_auv_position = list(self.auv_position)
                         
-                        #Set a sleep time to save computer resources
-                        rospy.sleep(.1)
+                            #save data for post-processing
+                            header = 'timestamp auv_x auv_y auv_vx auv_vy real_target_x real_target_y p_target_x p_target_y range true_range origin_northing origin_easting wp_x wp_y'
+                            timestamp_t.append(time.time())
+                            auv_x_t.append(self.auv_position[0])
+                            auv_y_t.append(self.auv_position[2])
+                            auv_vx_t.append(self.auv_position[1])
+                            auv_vy_t.append(self.auv_position[3])
+                            real_target_x_t.append(self.real_target_x)
+                            real_target_y_t.append(self.real_target_y)
+                            p_target_x_t.append(target.position[0])
+                            p_target_y_t.append(target.position[2])
+                            range_t.append(slant_range)
+                            new_range_flag_t.append(new_range_flag)
+                            origin_northing_t.append(self.origin_northing)
+                            origin_easting_t.append(self.origin_easting)
+                            angle_waypoint_x_t.append(self.auv_position[0]+angle_waypoint_x)
+                            angle_waypoint_y_t.append(self.auv_position[2]+angle_waypoint_y)
+                            aux_t = np.concatenate((np.matrix(timestamp_t),
+                                        np.matrix(auv_x_t),
+                                        np.matrix(auv_y_t),
+                                        np.matrix(auv_vx_t),
+                                        np.matrix(auv_vy_t),
+                                        np.matrix(real_target_x_t),
+                                        np.matrix(real_target_y_t),
+                                        np.matrix(p_target_x_t),
+                                        np.matrix(p_target_y_t),
+                                        np.matrix(range_t),
+                                        np.matrix(new_range_flag_t),
+                                        np.matrix(origin_northing_t),
+                                        np.matrix(origin_easting_t),
+                                        np.matrix(angle_waypoint_x_t),
+                                        np.matrix(angle_waypoint_y_t)),axis=0)
+                            path_to_save = os.path.dirname(os.getcwd())+'/catkin_ws/src/stalker/src/'
+                            np.savetxt(path_to_save+'log_test_'+date_time_folder+'.txt', aux_t.T, fmt="%.6f", header=header, delimiter =',') 
+                            
+                            #See if the AUV is on the circle (i.e. is conducting the circunference, not going to it)
+                            auv_distance_from_target = np.sqrt((self.auv_position[0]-target.position[0])**2+(self.auv_position[2]-target.position[2])**2) 
+                            if auv_distance_from_target>(radius-5) and auv_distance_from_target<(radius+5):
+                                    if num_points == -1:
+                                            self.dprint('Iteration '+str(iteration)+'/--')
+                                    else:
+                                            self.dprint('Iteration '+str(iteration)+'/'+str(int(num_points+2)))
+                                    if iteration > num_points+1 and num_points != -1:
+                                            self.disable_go_to_watch()
+                                            break
+                                    iteration += 1
+                            old_auv_position = list(self.auv_position)
+                
+                    #Set a sleep time to save computer resources
+                    rospy.sleep(.1)
                 except rospy.ROSInterruptException or KeyboardInterrupt:
                         print('KeyboardInterrupt')
+                        self.disable_go_to_watch()
                         return
                         
         return
@@ -437,6 +462,9 @@ if __name__ == '__main__':
             pretrined_agent = sys.argv[7]
             ocean_current = float(sys.argv[8])
             ocean_current_direction = float(sys.argv[9])
+            final_depth = float(sys.argv[10])
+            final_altitude = float(sys.argv[11])
+            surge_velocity = float(sys.argv[12])
             
             print('method=',target_estimation_method)
             
@@ -457,7 +485,7 @@ if __name__ == '__main__':
             sys.exit()
         target = Target()
         tracker = TargetTracking(target_estimation_method, path_method, pretrined_agent)
-        tracker.start(target, np.array(modem_id.split(','),dtype=int), radius, distance_between_meas, num_points,ocean_current,ocean_current_direction)
+        tracker.start(target, np.array(modem_id.split(','),dtype=int), radius, distance_between_meas, num_points, ocean_current, ocean_current_direction, final_depth, final_altitude, surge_velocity)
         print('Done')
 
     except rospy.ROSInterruptException or KeyboardInterrupt:
